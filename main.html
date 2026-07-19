@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Photo Rename Tool</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial;
+}
+
+body{
+
+background:#edf2f7;
+
+}
+
+.container{
+
+width:90%;
+max-width:1200px;
+margin:30px auto;
+background:white;
+padding:30px;
+border-radius:15px;
+box-shadow:0px 10px 30px rgba(0,0,0,.2);
+
+}
+
+h1{
+
+text-align:center;
+margin-bottom:20px;
+color:#2d3748;
+
+}
+
+.row{
+
+display:flex;
+gap:20px;
+margin-bottom:20px;
+
+}
+
+.col{
+
+flex:1;
+
+}
+
+input{
+
+width:100%;
+padding:12px;
+font-size:17px;
+border-radius:8px;
+border:1px solid gray;
+
+}
+
+button{
+
+padding:12px 25px;
+background:#3182ce;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+font-size:18px;
+
+}
+
+button:hover{
+
+background:#2b6cb0;
+
+}
+
+.drop{
+
+margin-top:20px;
+border:3px dashed gray;
+padding:40px;
+text-align:center;
+border-radius:10px;
+cursor:pointer;
+
+}
+
+.preview{
+
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+gap:20px;
+margin-top:25px;
+
+}
+
+.card{
+
+border:1px solid #ddd;
+padding:10px;
+border-radius:10px;
+text-align:center;
+
+}
+
+.card img{
+
+width:100%;
+height:130px;
+object-fit:cover;
+border-radius:10px;
+
+}
+
+.progress{
+
+margin-top:25px;
+height:25px;
+background:#ddd;
+border-radius:30px;
+overflow:hidden;
+
+}
+
+.bar{
+
+height:100%;
+width:0%;
+background:#38a169;
+transition:.3s;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>PHOTO RENAME TOOL</h1>
+
+<div class="row">
+
+<div class="col">
+
+<label>From</label>
+
+<input id="from" placeholder="DM92520001">
+
+</div>
+
+<div class="col">
+
+<label>To</label>
+
+<input id="to" placeholder="DM92520100">
+
+</div>
+
+</div>
+
+<input type="file" id="files" multiple accept="image/*">
+
+<div class="drop" id="drop">
+
+Drag & Drop Photos Here
+
+</div>
+
+<br>
+
+<button onclick="generate()">
+
+Generate JPG
+
+</button>
+
+<div class="progress">
+
+<div class="bar" id="bar">
+
+</div>
+
+</div>
+
+<div class="preview" id="preview">
+
+</div>
+
+</div>
+
+<script>
+
+let images=[];
+
+const input=document.getElementById("files");
+
+const preview=document.getElementById("preview");
+
+const drop=document.getElementById("drop");
+
+input.onchange=(e)=>{
+
+images=[...e.target.files];
+
+show();
+
+}
+
+drop.ondragover=(e)=>{
+
+e.preventDefault();
+
+drop.style.background="#ebf8ff";
+
+}
+
+drop.ondragleave=()=>{
+
+drop.style.background="white";
+
+}
+
+drop.ondrop=(e)=>{
+
+e.preventDefault();
+
+images=[...e.dataTransfer.files];
+
+show();
+
+}
+
+function show(){
+
+preview.innerHTML="";
+
+images.forEach((file)=>{
+
+let reader=new FileReader();
+
+reader.onload=function(){
+
+let div=document.createElement("div");
+
+div.className="card";
+
+div.innerHTML=`
+
+<img src="${reader.result}">
+
+<p>${file.name}</p>
+
+`;
+
+preview.appendChild(div);
+
+}
+
+reader.readAsDataURL(file);
+
+})
+
+}
+
+async function generate(){
+
+let from=document.getElementById("from").value;
+
+let bar=document.getElementById("bar");
+
+if(images.length==0){
+
+alert("Select Photos");
+
+return;
+
+}
+
+let prefix=from.match(/[A-Za-z]+/)[0];
+
+let number=parseInt(from.match(/\d+/)[0]);
+
+for(let i=0;i<images.length;i++){
+
+let file=images[i];
+
+let img=new Image();
+
+let reader=new FileReader();
+
+reader.readAsDataURL(file);
+
+await new Promise(res=>{
+
+reader.onload=()=>{
+
+img.src=reader.result;
+
+img.onload=()=>{
+
+let canvas=document.createElement("canvas");
+
+canvas.width=img.width;
+
+canvas.height=img.height;
+
+let ctx=canvas.getContext("2d");
+
+ctx.drawImage(img,0,0);
+
+canvas.toBlob((blob)=>{
+
+let a=document.createElement("a");
+
+let newName=prefix+(number+i)+".jpg";
+
+a.href=URL.createObjectURL(blob);
+
+a.download=newName;
+
+a.click();
+
+bar.style.width=((i+1)/images.length*100)+"%";
+
+res();
+
+},"image/jpeg",0.95);
+
+}
+
+}
+
+})
+
+}
+
+alert("Completed");
+
+}
+
+</script>
+
+</body>
+</html>

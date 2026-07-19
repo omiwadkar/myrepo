@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photo Rename Tool</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    min-height: 100vh;
+    color: #e2e8f0;
+    padding: 30px 16px;
+  }
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    background: #1e293bcc;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+  h1 {
+    font-size: 22px;
+    margin-bottom: 6px;
+    color: #38bdf8;
+  }
+  p.sub {
+    color: #94a3b8;
+    font-size: 14px;
+    margin-bottom: 22px;
+  }
+  .drop-zone {
+    border: 2px dashed #475569;
+    border-radius: 12px;
+    padding: 34px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    background: #0f172a55;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: #38bdf8;
+    background: #0f172a99;
+  }
+  .drop-zone p { color: #cbd5e1; font-size: 15px; }
+  .drop-zone span { font-size: 13px; color: #64748b; }
+  input[type="file"] { display: none; }
+
+  .thumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid #334155;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .thumb .idx {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.6);
+    font-size: 10px;
+    text-align: center;
+    padding: 1px 0;
+  }
+
+  .section {
+    margin-top: 26px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    color: #94a3b8;
+    margin-bottom: 6px;
+  }
+  .row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .row > div { flex: 1; }
+  input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-size: 14px;
+  }
+  input[type="text"]:focus { outline: none; border-color: #38bdf8; }
+
+  .btn {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 10px;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: 0.15s;
+  }
+  .btn:hover { background: #0ea5e9; }
+  .btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+  .btn.secondary {
+    background: transparent;
+    border: 1px solid #475569;
+    color: #cbd5e1;
+  }
+  .btn.secondary:hover { border-color: #38bdf8; color: #38bdf8; }
+
+  .status {
+    margin-top: 14px;
+    font-size: 13px;
+    color: #a3e635;
+    min-height: 18px;
+  }
+  .status.error { color: #f87171; }
+  .status.info { color: #94a3b8; }
+
+  .progress-wrap {
+    margin-top: 10px;
+    height: 8px;
+    background: #334155;
+    border-radius: 4px;
+    overflow: hidden;
+    display: none;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #38bdf8;
+    transition: width 0.15s;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>📁 Photo Rename Tool</h1>
+  <p class="sub">Add your photos, set a naming range, and get renamed photos saved into a new folder.</p>
+
+  <div class="drop-zone" id="dropZone">
+    <p>👆 Click here to add photos</p>
+    <span>(drag & drop also works — you can select multiple photos)</span>
+    <input type="file" id="fileInput" accept="image/*" multiple>
+  </div>
+
+  <div class="thumbs" id="thumbs"></div>
+
+  <div class="section">
+    <div class="row">
+      <div>
+        <label>From code (example)</label>
+        <input type="text" id="fromCode" placeholder="dm92520001">
+      </div>
+      <div>
+        <label>To code (example)</label>
+        <input type="text" id="toCode" placeholder="dm92520100">
+      </div>
+    </div>
+    <p class="hint">The prefix and number of digits will be detected automatically from the examples above. As many names as the range covers, that many photos will be renamed.</p>
+  </div>
+
+  <button class="btn" id="saveBtn" disabled>📂 Choose / Create New Folder & Save</button>
+  <button class="btn secondary" id="zipBtn" disabled>⬇️ Download as ZIP (if folder option doesn't work)</button>
+
+  <div class="progress-wrap" id="progWrap"><div class="progress-bar" id="progBar"></div></div>
+  <div class="status" id="status"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const thumbs = document.getElementById('thumbs');
+  const saveBtn = document.getElementById('saveBtn');
+  const zipBtn = document.getElementById('zipBtn');
+  const statusEl = document.getElementById('status');
+  const progWrap = document.getElementById('progWrap');
+  const progBar = document.getElementById('progBar');
+  const fromCode = document.getElementById('fromCode');
+  const toCode = document.getElementById('toCode');
+
+  let files = [];
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    addFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', e => addFiles(e.target.files));
+
+  function addFiles(fileList) {
+    for (const f of fileList) {
+      if (f.type.startsWith('image/')) files.push(f);
+    }
+    renderThumbs();
+    updateButtons();
+  }
+
+  function renderThumbs() {
+    thumbs.innerHTML = '';
+    files.forEach((f, i) => {
+      const div = document.createElement('div');
+      div.className = 'thumb';
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      const idx = document.createElement('div');
+      idx.className = 'idx';
+      idx.textContent = i + 1;
+      div.appendChild(img);
+      div.appendChild(idx);
+      thumbs.appendChild(div);
+    });
+  }
+
+  function updateButtons() {
+    const has = files.length > 0;
+    saveBtn.disabled = !has;
+    zipBtn.disabled = !has;
+  }
+
+  function parseCode(code) {
+    const m = code.trim().match(/^(.*?)(\d+)$/);
+    if (!m) return null;
+    return { prefix: m[1], number: parseInt(m[2], 10), width: m[2].length };
+  }
+
+  function buildNameList() {
+    const from = parseCode(fromCode.value);
+    const to = parseCode(toCode.value);
+    if (!from || !to) {
+      setStatus('Please enter valid From/To codes (example: dm92520001)', true);
+      return null;
+    }
+    if (from.prefix !== to.prefix) {
+      setStatus('From and To codes must have the same prefix (example: dm9252)', true);
+      return null;
+    }
+    const names = [];
+    for (let n = from.number; n <= to.number; n++) {
+      const numStr = String(n).padStart(from.width, '0');
+      names.push(from.prefix + numStr);
+    }
+    return names;
+  }
+
+  function setStatus(msg, isError) {
+    statusEl.textContent = msg;
+    statusEl.className = 'status' + (isError ? ' error' : '');
+  }
+
+  function getExt(filename) {
+    const dot = filename.lastIndexOf('.');
+    return dot !== -1 ? filename.slice(dot) : '';
+  }
+
+  function getPlan() {
+    const names = buildNameList();
+    if (!names) return null;
+    if (files.length === 0) return null;
+
+    if (files.length < names.length) {
+      setStatus(`You uploaded ${files.length} photo(s) but the range needs ${names.length}. Your photo(s) will be repeated/cycled to fill all ${names.length} names.`, false);
+    } else if (files.length > names.length) {
+      setStatus(`Note: you uploaded ${files.length} photos but the range only has ${names.length} names. Only the first ${names.length} photos will be used.`, false);
+    }
+
+    const plan = [];
+    for (let i = 0; i < names.length; i++) {
+      const file = files[i % files.length]; // cycle through uploaded photos if fewer than range
+      plan.push({ file, newName: names[i] + getExt(file.name) });
+    }
+    return plan;
+  }
+
+  // ---- Save directly into a folder using File System Access API ----
+  saveBtn.addEventListener('click', async () => {
+    const plan = getPlan();
+    if (!plan || plan.length === 0) return;
+
+    if (!window.showDirectoryPicker) {
+      setStatus('This browser does not support saving directly to a folder. Please use the "ZIP download" button instead.', true);
+      return;
+    }
+
+    try {
+      const dirHandle = await window.showDirectoryPicker();
+      // Tip: click "New folder" inside this picker (e.g. on Desktop) to create a fresh folder, then select it.
+
+      progWrap.style.display = 'block';
+      setStatus('Saving...', false);
+
+      for (let i = 0; i < plan.length; i++) {
+        const item = plan[i];
+        const fileHandle = await dirHandle.getFileHandle(item.newName, { create: true });
+        const writable = await fileHandle.createWritable();
+        const buffer = await item.file.arrayBuffer();
+        await writable.write(buffer);
+        await writable.close();
+        progBar.style.width = Math.round(((i + 1) / plan.length) * 100) + '%';
+      }
+
+      setStatus(`✅ Done! ${plan.length} photos were successfully renamed and saved into the folder.`, false);
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        setStatus('Folder selection was cancelled.', false);
+      } else {
+        setStatus('Error: ' + err.message, true);
+      }
+    } finally {
+      progWrap.style.display = 'none';
+      progBar.style.width = '0%';
+    }
+  });
+
+  // ---- Fallback: download as ZIP ----
+  zipBtn.addEventListener('click', async () => {
+    const plan = getPlan();
+    if (!plan || plan.length === 0) return;
+
+    setStatus('Preparing ZIP...', false);
+    progWrap.style.display = 'block';
+
+    const zip = new JSZip();
+    for (let i = 0; i < plan.length; i++) {
+      const item = plan[i];
+      const buffer = await item.file.arrayBuffer();
+      zip.file(item.newName, buffer);
+      progBar.style.width = Math.round(((i + 1) / plan.length) * 100) + '%';
+    }
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'renamed-photos.zip';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    progWrap.style.display = 'none';
+    progBar.style.width = '0%';
+    setStatus(`✅ ZIP downloaded (${plan.length} photos). Extract the zip into a new folder on your Desktop.`, false);
+  });
+</script>
+</body>
+</html>
