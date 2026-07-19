@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Photo Rename Tool</title>
+<title>Photo Rename Tool </title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -170,14 +170,14 @@
     <div class="row">
       <div>
         <label>From code (example)</label>
-        <input type="text" id="fromCode" placeholder="dm92520001">
+        <input type="text" id="fromCode" placeholder="DM92520001">
       </div>
       <div>
         <label>To code (example)</label>
-        <input type="text" id="toCode" placeholder="dm92520100">
+        <input type="text" id="toCode" placeholder="DM92520100">
       </div>
     </div>
-    <p class="hint">The prefix and number of digits will be detected automatically from the examples above. As many names as the range covers, that many photos will be renamed. All output photos will be converted and saved as .jpg regardless of the original format.</p>
+    <p class="hint">The prefix and number of digits will be detected automatically from the examples above. As many names as the range covers, that many photos will be renamed.</p>
   </div>
 
   <button class="btn" id="saveBtn" disabled>📂 Choose / Create New Folder & Save</button>
@@ -185,7 +185,6 @@
 
   <div class="progress-wrap" id="progWrap"><div class="progress-bar" id="progBar"></div></div>
   <div class="status" id="status"></div>
-  <p style="text-align:center; margin-top:22px; font-size:12px; color:#64748b;">Powered by Omkar</p>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -230,10 +229,9 @@
       img.src = URL.createObjectURL(f);
       const idx = document.createElement('div');
       idx.className = 'idx';
-      idx.textContent = (i + 1) + ' ' + (getExt(f.name) || '(no ext)');
+      idx.textContent = i + 1;
       div.appendChild(img);
       div.appendChild(idx);
-      div.title = 'Name: ' + f.name + ' | Type: ' + f.type;
       thumbs.appendChild(div);
     });
   }
@@ -279,34 +277,6 @@
     return dot !== -1 ? filename.slice(dot) : '';
   }
 
-  // Converts any image file (png, webp, etc.) into a real JPEG blob using canvas
-  function convertToJpeg(file, quality = 0.92) {
-    return new Promise((resolve, reject) => {
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        const ctx = canvas.getContext('2d');
-        // white background so transparent PNGs don't turn black in JPEG
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-        canvas.toBlob((blob) => {
-          URL.revokeObjectURL(url);
-          if (blob) resolve(blob);
-          else reject(new Error('JPEG conversion failed for ' + file.name));
-        }, 'image/jpeg', quality);
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(new Error('Could not load image: ' + file.name));
-      };
-      img.src = url;
-    });
-  }
-
   function getPlan() {
     const names = buildNameList();
     if (!names) return null;
@@ -321,7 +291,7 @@
     const plan = [];
     for (let i = 0; i < names.length; i++) {
       const file = files[i % files.length]; // cycle through uploaded photos if fewer than range
-      plan.push({ file, newName: names[i] + '.jpg' });
+      plan.push({ file, newName: names[i] + getExt(file.name) });
     }
     return plan;
   }
@@ -347,8 +317,8 @@
         const item = plan[i];
         const fileHandle = await dirHandle.getFileHandle(item.newName, { create: true });
         const writable = await fileHandle.createWritable();
-        const jpegBlob = await convertToJpeg(item.file);
-        await writable.write(jpegBlob);
+        const buffer = await item.file.arrayBuffer();
+        await writable.write(buffer);
         await writable.close();
         progBar.style.width = Math.round(((i + 1) / plan.length) * 100) + '%';
       }
@@ -377,8 +347,8 @@
     const zip = new JSZip();
     for (let i = 0; i < plan.length; i++) {
       const item = plan[i];
-      const jpegBlob = await convertToJpeg(item.file);
-      zip.file(item.newName, jpegBlob);
+      const buffer = await item.file.arrayBuffer();
+      zip.file(item.newName, buffer);
       progBar.style.width = Math.round(((i + 1) / plan.length) * 100) + '%';
     }
 
