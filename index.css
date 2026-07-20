@@ -1,0 +1,52 @@
+/* Reset */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Body */
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(135deg, #74ebd5, #9face6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 30px;
+}
+
+/* Heading */
+
+h1 {
+    width: 800px;
+    background: white;
+    color: #333;
+    padding: 40px;
+    border-radius: 15px;
+    font-size: 24px;
+    line-height: 1.8;
+    text-align: justify;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    transition: 0.3s ease;
+    cursor: pointer;
+}
+
+/* Hover Effect */
+
+h1:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive */
+
+@media (max-width: 850px) {
+    h1 {
+        width: 100%;
+        font-size: 20px;
+        padding: 25px;
+    }
+}
